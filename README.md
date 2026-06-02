@@ -1,23 +1,97 @@
-Video of my presentation:
-https://www.youtube.com/watch?v=rS6CwDShNbY&ab_channel=AJ
+# 🥋 Martial Arts App
 
-Technical challenges:
+A full-stack web application where martial artists build a personal **library of techniques**
+(each with an uploaded demonstration video), **favorite** other users' techniques, and discuss
+in a **community forum**. Built as a capstone project — a React single-page front end backed by
+a Spring Boot REST API and a MySQL database.
 
-Video upload - Video uploads were much more convoluted than I had imagined. To get a file uploaded to an HTML form, a none-traditional method is required to get it, whereas with other
-values it's usually just a matter of getting the inputs value. This must be appended to a Form object, instead of just adding it as a value to a field in a JSON object.
-When sent the the back-end it comes in a MultipartFile format, and must be converted to bytes to be saved as a BLOB object in the SQL database. It's best to do this conversion
-in the controller, rather than within the setter of the object. I got the least amount of errors when keeping the entity as pure as possible. From here the video can be saved into
-the database, and retreived by another controller that specifies to return the BLOB object in an MP4 format, within an annotation. I found it best to have a controller that
-returns only a video, instead of a video and all other technique information. When only a video is returned, going to its mapping in one browser actually plays the video.
+🎥 **Video demo:** https://www.youtube.com/watch?v=rS6CwDShNbY
 
-Creating POJO for customized query results - HQL joins are much more complex than I thought. I had to create a class that specified the data types I wanted in the query results.
-Also, I had to join a table through its ManyToMany, etc, relationships, rather than using standard SQL syntax.
+## Tech stack
 
-Fetch requests - Fetch requests were much more convoluted than I imaged. I learned that I must save the results in the components state, or else they won't be saved.
-Some of the applications features require the program to wait for the results of the request. I learned I had to make the function that sent the requests async, and
-add the await keyword to the request itself. This prevented it from being run on a different thread. I learned how it's important to handle request errors.
-Changing app behavior depending on what status code is returned is essential. Combining these tools enabled me to get the frontend to behave exactly how I wanted it to.
+| Layer    | Technologies                                                        |
+|----------|---------------------------------------------------------------------|
+| Frontend | React (Create React App), React Router, Fetch API, CSS              |
+| Backend  | Java, Spring Boot, Spring Data JPA / Hibernate                      |
+| Database | MySQL / MariaDB (technique videos stored as BLOBs)                  |
+| Build    | Maven (backend), npm (frontend)                                     |
 
-Using React - I had very little experience with React before this project. There are other libraries one can use with React, 
-but I focused on learning the basics, and learned how to use them together to create much more complex app behavior. Using component functions like
-ComponentDidUpdate() was crucial, which allowed me to alter the page when data from fetch requests are returned.
+## Features
+
+- **Technique Library** — create techniques (name, type, description, video) and favorite others'.
+- **Video upload & playback** — videos uploaded as `multipart/form-data`, stored as BLOBs, and
+  streamed back as MP4 from a dedicated endpoint.
+- **Forum** — browse the most popular and the 10 newest techniques across all users.
+- **Dev Blog & Feedback** — message-based pages for announcements and user feedback.
+- **Auth** — user registration and login.
+
+## Architecture
+
+```
+MartialArtsBackend/     Spring Boot REST API (controllers, JPA entities, repositories)
+  └─ com.alijah.martial_arts_app
+       controllers/     TechniqueController, MessageController, UserController
+       models/          Technique, Message, User, TechniqueResponse (custom query POJO)
+       repositories/    Spring Data JPA repositories
+martial_arts_frontend/  React SPA (Pages: Library, Forum, DevBlog, Feedback, About, Login, Register)
+Wireframe/              UI wireframes
+martialArtsSchema.png   Database schema
+```
+
+### Data model
+
+![Database schema](martialArtsSchema.png)
+
+## REST API (selected endpoints)
+
+| Method | Endpoint                                   | Purpose                              |
+|--------|--------------------------------------------|--------------------------------------|
+| POST   | `/technique`                               | Create a technique (with video)      |
+| GET    | `/technique/{username}`                    | A user's techniques                  |
+| GET    | `/technique/popular` · `/technique/latest` | Most-favorited · 10 newest           |
+| POST   | `/user` · `/user/fav/{username}/{id}`      | Register · favorite a technique      |
+| GET    | `/user/{username}/{password}`              | Login lookup                         |
+| POST   | `/message` · GET `/message/received/{user}`| Forum / dev-blog / feedback messages |
+
+## Running locally
+
+**Backend** (needs a local MySQL/MariaDB):
+```bash
+cd MartialArtsBackend
+# connects to jdbc:mysql://localhost:3306/ma_db (auto-creates the DB)
+./mvnw spring-boot:run
+```
+Set `MYSQL_HOST` and the datasource username/password in
+`src/main/resources/application.properties` to match your local DB.
+
+**Frontend:**
+```bash
+cd martial_arts_frontend
+npm install
+npm start          # http://localhost:3000
+```
+
+## Screens (wireframes)
+
+| Forum | Login |
+|---|---|
+| ![Forum](Wireframe/Forum.jpg) | ![Login](Wireframe/Login.jpg) |
+| ![Feedback](Wireframe/Feedback.jpg) | ![Register](Wireframe/Register.jpg) |
+
+## Engineering notes & challenges
+
+A few problems worth calling out from building this:
+
+- **Video upload → BLOB → playback.** File uploads need `multipart/form-data` and a `FormData`
+  object on the client (not a JSON field); on the server the file arrives as a `MultipartFile`,
+  is converted to bytes, and stored as a BLOB. Keeping the conversion in the controller (rather
+  than in entity setters) kept the JPA entity clean and reduced errors. A dedicated endpoint
+  returns *only* the video as MP4 so the resource plays directly in the browser.
+- **Custom POJO for HQL join results.** Aggregated/joined query results didn't map onto a single
+  entity, so I introduced a `TechniqueResponse` projection class and joined across `@ManyToMany`
+  relationships in HQL rather than raw SQL.
+- **Async fetch + React state.** Features that depend on server data required `async/await` on the
+  fetch calls and storing results in component state, plus status-code-aware error handling, to get
+  predictable UI behavior.
+- **Learning React.** First substantial React project — learned the component/state model and
+  lifecycle updates to re-render pages as fetched data arrived.
