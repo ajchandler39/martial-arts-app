@@ -20,12 +20,17 @@ export default class Login extends React.Component
     {
         try
         {
-        await fetch(this.props.apiUrl + "/user/" + username + "/" + password)
-            .then(response => response.json())
-            .then(data => this.setState({user: data}));
+            const response = await fetch(this.props.apiUrl + "/user/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            if(!response.ok) throw new Error("login failed");
+            const data = await response.json();
+            this.setState({user: data});
         } catch(e)
         {
-            alert("User does not exist.");
+            alert("Invalid username or password.");
             return;
         }
         document.cookie = "username=" + this.state.user.username;

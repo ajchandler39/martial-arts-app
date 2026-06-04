@@ -78,18 +78,19 @@ public class UserController {
 		return result;
 	}
 	
-	//This gets a user by their username and password. BCrypt is used here to make sure the raw entered password is the same as the hashed one in the database.
-	@GetMapping(path="/{username}/{password}")
-	public User getUser(@PathVariable String username, @PathVariable String password)
+	//Authenticates a user. Credentials are sent in the POST body (not the URL) so the password
+	//never lands in request logs, browser history, or proxy caches. BCrypt verifies the raw
+	//password against the stored hash.
+	@PostMapping(path="/login")
+	public ResponseEntity<User> login(@RequestBody User credentials)
 	{
 		PasswordEncoder passEncoder = new BCryptPasswordEncoder();
-		User user = userRepo.findById(username).orElse(null);
-		if(passEncoder.matches(password, user.getPassword()))
+		User user = userRepo.findById(credentials.getUsername()).orElse(null);
+		if(user != null && passEncoder.matches(credentials.getPassword(), user.getPassword()))
 		{
-			System.out.println(user);
-			return user;
+			return ResponseEntity.ok(user);
 		}
-		return null;
+		return ResponseEntity.status(401).build();
 	}
 
 	//The below allows a user to delete one of their technique favorites, from their library page.
