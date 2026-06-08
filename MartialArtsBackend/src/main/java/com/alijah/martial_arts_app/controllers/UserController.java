@@ -2,10 +2,7 @@ package com.alijah.martial_arts_app.controllers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +28,7 @@ import com.alijah.martial_arts_app.repositories.UserRepository;
 @RequestMapping(path="/api/user")
 public class UserController {
 	
-	Logger logger = LoggerFactory.getLogger(UserController.class);
+	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
 	//The below allows me to use the queries defined in the UserRepository interface.
 	@Autowired
@@ -49,7 +46,6 @@ public class UserController {
 		PasswordEncoder passEncoder = new BCryptPasswordEncoder();
 		String encodedPass = passEncoder.encode(user.getPassword());
 		user.setPassword(encodedPass);
-		System.out.println(encodedPass);
 		return ResponseEntity.ok(userRepo.save(user));
 	}
 	

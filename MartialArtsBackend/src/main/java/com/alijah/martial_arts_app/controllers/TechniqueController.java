@@ -32,7 +32,7 @@ import com.alijah.martial_arts_app.repositories.UserRepository;
 @RequestMapping(path="/api/technique")
 public class TechniqueController 
 {
-	Logger logger = LoggerFactory.getLogger(TechniqueController.class);
+	private static final Logger logger = LoggerFactory.getLogger(TechniqueController.class);
 	//The below allows me to use the queries defined in the TechniqueRepository interface.
 	@Autowired
 	private TechniqueRepository techRepo;
@@ -51,7 +51,12 @@ public class TechniqueController
 			@RequestParam MultipartFile video)
 	{
 		logger.info("Technique created.");
-		byte[] convertedVid = null; try { convertedVid = video.getBytes(); } catch (IOException e) { e.printStackTrace(); }
+		byte[] convertedVid = null;
+		try {
+			convertedVid = video.getBytes();
+		} catch (IOException e) {
+			logger.error("Failed to read video bytes for technique creation", e);
+		}
 		
 		User user = userRepo.findById(creator).orElse(null);
 		user.getTechs().add(new Technique(creator, name, type, description, convertedVid));
@@ -114,7 +119,11 @@ public class TechniqueController
 	byte[] getVideo(@PathVariable Integer id)
 	{
 		Technique foundTech = techRepo.findById(id).orElse(null);
-		try { return foundTech.getVideo(); } catch(Exception e) { }
+		try {
+			return foundTech.getVideo();
+		} catch (Exception e) {
+			logger.error("Failed to retrieve video for technique id: {}", id, e);
+		}
 		return null;
 	}
 	
@@ -130,15 +139,21 @@ public class TechniqueController
 		logger.info("Technique updated.");
 		byte[] convertedVid = null;
 		//for some reason video.getBytes() will stop the program if the exception of "can't call .getBytes()" is called.
-		if(video != null) try { convertedVid = video.getBytes(); } catch (IOException e) { }
+		if (video != null) {
+			try {
+				convertedVid = video.getBytes();
+			} catch (IOException e) {
+				logger.warn("Failed to read video bytes for technique update, keeping existing video", e);
+			}
+		}
 		
 		Technique found = techRepo.findById(id).orElse(null);
 		
 		//should test for empty strings on all but video. vid wont return empty string, all others wont return null.
-		if(name != null && !name.equals("")) found.setName(name);
-		if(type != null && !type.equals("")) found.setType(type);
-		if(description != null && !description.equals("")) found.setDescription(description);
-		if(video != null && !video.equals("")) found.setVideo(convertedVid);
+		if(name != null && !name.isBlank()) found.setName(name);
+		if(type != null && !type.isBlank()) found.setType(type);
+		if(description != null && !description.isBlank()) found.setDescription(description);
+		if(video != null && !video.isEmpty()) found.setVideo(convertedVid);
 		return ResponseEntity.ok(techRepo.save(found));
 	}
 	
